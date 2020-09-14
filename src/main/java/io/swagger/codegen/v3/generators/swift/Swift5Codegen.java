@@ -694,12 +694,20 @@ public class Swift5Codegen extends DefaultCodegenConfig {
 
     @Override
     public String toEnumValue(String value, String datatype) {
-        return String.valueOf(value);
+        if (datatype.equalsIgnoreCase("string")) {
+            return '"' + String.valueOf(value) + '"';
+        } else {
+            return String.valueOf(value);
+        }
     }
 
     @Override
     public String toEnumDefaultValue(String value, String datatype) {
-        return datatype + "_" + value;
+        if (datatype.equalsIgnoreCase("string")) {
+            return '"' + datatype + value + '"';
+        } else {
+            return datatype + value;
+        }
     }
 
     @Override
