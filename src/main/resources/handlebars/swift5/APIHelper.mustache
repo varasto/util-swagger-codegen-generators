@@ -5,6 +5,7 @@
 //
 
 import Foundation
+import Alamofire
 
 public struct APIHelper {
     public static func rejectNil(_ source: [String:Any?]) -> [String:Any]? {
@@ -20,8 +21,8 @@ public struct APIHelper {
         return destination
     }
 
-    public static func rejectNilHeaders(_ source: [String:Any?]) -> [String:String] {
-        return source.reduce(into: [String: String]()) { (result, item) in
+    public static func rejectNilHeaders(_ source: [String:Any?]) -> HTTPHeaders {
+        return source.reduce(into: HTTPHeaders()) { (result, item) in
             if let collection = item.value as? Array<Any?> {
                 result[item.key] = collection.filter({ $0 != nil }).map{ "\($0!)" }.joined(separator: ",")
             } else if let value: Any = item.value {
