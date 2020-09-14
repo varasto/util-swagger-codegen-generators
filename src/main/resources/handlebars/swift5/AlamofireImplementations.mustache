@@ -90,10 +90,10 @@ open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
                     }
                 }
             }, to: URLString, usingThreshold: UInt64.init(), method: xMethod, headers: nil, interceptor: nil, fileManager: .default).uploadProgress { (progress) in
-                    if let onProgressReady = self.onProgressReady {
+                if let onProgressReady = self.onProgressReady {
                     onProgressReady(progress)
-                    }
                 }
+            }
             processRequest(request: request, managerId, completion)
         } else {
             let request = makeRequest(manager: manager, method: xMethod, encoding: encoding, headers: headers)
@@ -123,10 +123,10 @@ open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
             validatedRequest.responseString(completionHandler: { (stringResponse) in
                 cleanupRequest()
 
-                if stringResponse.result.isFailure {
+                if let error = stringResponse.error {
                     completion(
                         nil,
-                        ErrorResponse.error(stringResponse.response?.statusCode ?? 500, stringResponse.data, stringResponse.result.error!)
+                        ErrorResponse.error(stringResponse.response?.statusCode ?? 500, stringResponse.data, error)
                     )
                     return
                 }
@@ -134,7 +134,7 @@ open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
                 completion(
                     Response(
                         response: stringResponse.response!,
-                        body: ((stringResponse.result.value ?? "") as! T)
+                        body: ((stringResponse.value ?? "") as! T)
                     ),
                     nil
                 )
@@ -145,7 +145,7 @@ open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
 
                 do {
 
-                    guard !dataResponse.result.isFailure else {
+                    guard case .failure(_) = dataResponse.result else {
                         throw DownloadException.responseFailed
                     }
 
@@ -193,10 +193,10 @@ open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
             validatedRequest.responseData(completionHandler: { (voidResponse) in
                 cleanupRequest()
 
-                if voidResponse.result.isFailure {
+                if let error = voidResponse.error {
                     completion(
                         nil,
-                        ErrorResponse.error(voidResponse.response?.statusCode ?? 500, voidResponse.data, voidResponse.result.error!)
+                        ErrorResponse.error(voidResponse.response?.statusCode ?? 500, voidResponse.data, error)
                     )
                     return
                 }
@@ -204,7 +204,8 @@ open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
                 completion(
                     Response(
                         response: voidResponse.response!,
-                        body: nil),
+                        body: nil
+                    ),
                     nil
                 )
             })
@@ -212,10 +213,10 @@ open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
             validatedRequest.responseData(completionHandler: { (dataResponse) in
                 cleanupRequest()
 
-                if dataResponse.result.isFailure {
+                if let error = dataResponse.error {
                     completion(
                         nil,
-                        ErrorResponse.error(dataResponse.response?.statusCode ?? 500, dataResponse.data, dataResponse.result.error!)
+                        ErrorResponse.error(dataResponse.response?.statusCode ?? 500, dataResponse.data, error)
                     )
                     return
                 }
@@ -229,14 +230,6 @@ open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
                 )
             })
         }
-    }
-
-    open func buildHeaders() -> HTTPHeaders {
-        var httpHeaders = Session.defaultHTTPHeaders
-        for (key, value) in self.headers {
-            httpHeaders[key] = value
-        }
-        return httpHeaders
     }
 
     fileprivate func getFileName(fromContentDisposition contentDisposition : String?) -> String? {
@@ -327,10 +320,10 @@ open class AlamofireDecodableRequestBuilder<T:Decodable>: AlamofireRequestBuilde
             validatedRequest.responseString(completionHandler: { (stringResponse) in
                 cleanupRequest()
 
-                if stringResponse.result.isFailure {
+                if let error = stringResponse.error {
                     completion(
                         nil,
-                        ErrorResponse.error(stringResponse.response?.statusCode ?? 500, stringResponse.data, stringResponse.result.error!)
+                        ErrorResponse.error(stringResponse.response?.statusCode ?? 500, stringResponse.data, error)
                     )
                     return
                 }
@@ -338,7 +331,7 @@ open class AlamofireDecodableRequestBuilder<T:Decodable>: AlamofireRequestBuilde
                 completion(
                     Response(
                         response: stringResponse.response!,
-                        body: ((stringResponse.result.value ?? "") as! T)
+                        body: ((stringResponse.value ?? "") as! T)
                     ),
                     nil
                 )
@@ -347,10 +340,10 @@ open class AlamofireDecodableRequestBuilder<T:Decodable>: AlamofireRequestBuilde
             validatedRequest.responseData(completionHandler: { (voidResponse) in
                 cleanupRequest()
 
-                if voidResponse.result.isFailure {
+                if let error = voidResponse.error {
                     completion(
                         nil,
-                        ErrorResponse.error(voidResponse.response?.statusCode ?? 500, voidResponse.data, voidResponse.result.error!)
+                        ErrorResponse.error(voidResponse.response?.statusCode ?? 500, voidResponse.data, error)
                     )
                     return
                 }
@@ -358,7 +351,8 @@ open class AlamofireDecodableRequestBuilder<T:Decodable>: AlamofireRequestBuilde
                 completion(
                     Response(
                         response: voidResponse.response!,
-                        body: nil),
+                        body: nil
+                    ),
                     nil
                 )
             })
@@ -366,10 +360,10 @@ open class AlamofireDecodableRequestBuilder<T:Decodable>: AlamofireRequestBuilde
             validatedRequest.responseData(completionHandler: { (dataResponse) in
                 cleanupRequest()
 
-                if dataResponse.result.isFailure {
+                if let error = dataResponse.error {
                     completion(
                         nil,
-                        ErrorResponse.error(dataResponse.response?.statusCode ?? 500, dataResponse.data, dataResponse.result.error!)
+                        ErrorResponse.error(dataResponse.response?.statusCode ?? 500, dataResponse.data, error)
                     )
                     return
                 }
@@ -383,11 +377,11 @@ open class AlamofireDecodableRequestBuilder<T:Decodable>: AlamofireRequestBuilde
                 )
             })
         default:
-            validatedRequest.responseData(completionHandler: { (dataResponse: DataResponse<Data>) in
+            validatedRequest.responseData(completionHandler: { dataResponse in
                 cleanupRequest()
 
-                guard dataResponse.result.isSuccess else {
-                    completion(nil, ErrorResponse.error(dataResponse.response?.statusCode ?? 500, dataResponse.data, dataResponse.result.error!))
+                guard case .success(_) = dataResponse.result else {
+                    completion(nil, ErrorResponse.error(dataResponse.response?.statusCode ?? 500, dataResponse.data, dataResponse.error!))
                     return
                 }
 
