@@ -23,6 +23,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -59,6 +61,10 @@ public class Swift5Codegen extends DefaultCodegenConfig {
     protected boolean swiftUseApiNamespace;
     private String[] responseAs = new String[0];
     protected String sourceFolder = "Classes" + File.separator + "Swaggers";
+
+    public CodegenType getOrGenerateOperationId() {
+        return CodegenType.CLIENT;
+    }
 
     @Override
     public CodegenType getTag() {
@@ -519,6 +525,21 @@ public class Swift5Codegen extends DefaultCodegenConfig {
             throw new RuntimeException("Empty method name (operationId) not allowed");
         }
 
+        // method name can be an HTTP method
+        if (
+            operationId.equalsIgnoreCase("get") ||
+            operationId.equalsIgnoreCase("head") ||
+            operationId.equalsIgnoreCase("post") ||
+            operationId.equalsIgnoreCase("put") ||
+            operationId.equalsIgnoreCase("delete") ||
+            operationId.equalsIgnoreCase("connect") ||
+            operationId.equalsIgnoreCase("options") ||
+            operationId.equalsIgnoreCase("trace") ||
+            operationId.equalsIgnoreCase("patch")
+        ) {
+            return operationId;
+        }
+        
         // method name cannot use reserved keyword, e.g. return
         if (isReservedWord(operationId)) {
             String newOperationId = camelize(("call_" + operationId), true);
@@ -618,6 +639,33 @@ public class Swift5Codegen extends DefaultCodegenConfig {
         }
 
         return codegenOperation;
+    }
+
+    @Override
+    protected String getOrGenerateOperationId(Operation operation, String path, String httpMethod) {
+        // https://github.com/swagger-api/swagger-codegen-generators/issues/760
+        String operationId = operation.getOperationId();
+        if (StringUtils.isBlank(operationId)) {
+            String tmpPath = path;
+            tmpPath = tmpPath.replaceAll("\\/api\\/v[0-9]{1,}\\/[a-z0-9]{1,}", "");
+            tmpPath = tmpPath.replaceAll("\\/\\{.*\\}", "");
+            tmpPath = tmpPath.replaceAll("\\/", "_");
+            tmpPath = httpMethod + tmpPath;
+            tmpPath = camelize(tmpPath);
+            operationId = sanitizeName(tmpPath);
+            LOGGER.warn("Empty operationId found for path: " + httpMethod + " " + path + ". Renamed to auto-generated operationId: " + operationId);
+        }
+        return operationId;
+    }
+
+    public void addOperationToGroup(String tag, String resourcePath, Operation operation, CodegenOperation co, Map<String, List<CodegenOperation>> operations) {
+        List<CodegenOperation> opList = operations.get(tag);
+        if (opList == null) {
+            opList = new ArrayList<CodegenOperation>();
+            operations.put(tag, opList);
+        }
+        opList.add(co);
+        co.baseName = tag;
     }
 
     public void setProjectName(String projectName) {
