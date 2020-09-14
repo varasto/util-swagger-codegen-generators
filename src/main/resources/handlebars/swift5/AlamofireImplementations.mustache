@@ -71,7 +71,7 @@ open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
                                                            .map { $0.0 }
 
         if fileKeys.count > 0 {
-            manager.upload(multipartFormData: { mpForm in
+            let request = manager.upload(multipartFormData: { (mpForm) in
                 for (k, v) in self.parameters! {
                     switch v {
                     case let fileURL as URL:
@@ -89,21 +89,16 @@ open class AlamofireRequestBuilder<T>: RequestBuilder<T> {
                         fatalError("Unprocessable value \(v) with key \(k)")
                     }
                 }
-                }, to: URLString, method: xMethod!, headers: nil, encodingCompletion: { encodingResult in
-                switch encodingResult {
-                case .success(let upload, _, _):
+            }, to: URLString, usingThreshold: UInt64.init(), method: xMethod, headers: nil, interceptor: nil, fileManager: .default).uploadProgress { (progress) in
                     if let onProgressReady = self.onProgressReady {
-                        onProgressReady(upload.uploadProgress)
+                    onProgressReady(progress)
                     }
-                    self.processRequest(request: upload, managerId, completion)
-                case .failure(let encodingError):
-                    completion(nil, ErrorResponse.error(415, nil, encodingError))
                 }
-            })
+            processRequest(request: request, managerId, completion)
         } else {
-            let request = makeRequest(manager: manager, method: xMethod!, encoding: encoding, headers: headers)
+            let request = makeRequest(manager: manager, method: xMethod, encoding: encoding, headers: headers)
             if let onProgressReady = self.onProgressReady {
-                onProgressReady(request.progress)
+                onProgressReady(request.uploadProgress)
             }
             processRequest(request: request, managerId, completion)
         }
