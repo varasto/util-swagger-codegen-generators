@@ -196,8 +196,8 @@ public class Swift5Codegen extends DefaultCodegenConfig {
         typeMapping.put("float", "Float");
         typeMapping.put("number", "Double");
         typeMapping.put("double", "Double");
-        typeMapping.put("object", "Any");
-        typeMapping.put("Object", "Any");
+        typeMapping.put("object", "JSONValue");
+        typeMapping.put("Object", "JSONValue");
         typeMapping.put("file", "URL");
         typeMapping.put("binary", "Data");
         typeMapping.put("ByteArray", "Data");
